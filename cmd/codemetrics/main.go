@@ -170,14 +170,14 @@ func rowsFor(name string, src []byte) ([]row, error) {
 
 func printTable(w io.Writer, rows []row) {
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, "COGNITIVE\tCYCLOMATIC\tLINES\tFUNCTION\tLOCATION")
+	_, _ = fmt.Fprintln(tw, "COGNITIVE\tCYCLOMATIC\tLINES\tFUNCTION\tLOCATION")
 	for _, r := range rows {
 		cog := "-"
 		if r.Cognitive != nil {
 			cog = fmt.Sprintf("%d", *r.Cognitive)
 		}
 		lines := r.EndLine - r.StartLine + 1
-		fmt.Fprintf(tw, "%s\t%d\t%d\t%s\t%s:%d\n", cog, r.Cyclomatic, lines, r.Function, r.File, r.StartLine)
+		_, _ = fmt.Fprintf(tw, "%s\t%d\t%d\t%s\t%s:%d\n", cog, r.Cyclomatic, lines, r.Function, r.File, r.StartLine)
 	}
 	_ = tw.Flush()
 }
