@@ -18,15 +18,14 @@ import (
 // else branch; cognitiveSpec.elseField / elseParentType let the walk recognise
 // that shape and charge it the flat else-if cost.
 //
-// Swift is deliberately omitted (no spec) and must stay that way until the
-// upstream grammar is fixed: tree-sitter-swift mis-parses `else if` chains,
-// emitting ERROR nodes and degrading the enclosing function_declaration, so any
-// cognitive walk over a real function containing an else-if produces a wrong
-// number. Single if/else, guard, switch, for, while, repeat, and &&/|| all
-// parse clean — but else-if is common enough that a partial spec would
-// re-introduce the inconsistency (see richardwooding/file-search-on#491).
-// Tracked upstream at odvcencio/gotreesitter#131; re-add a swift entry once that
-// closes and a real else-if function parses cleanly.
+// Swift is supported as of gotreesitter v0.20.7, which fixed the else-if
+// mis-parse that previously degraded the enclosing function_declaration to
+// ERROR nodes (odvcencio/gotreesitter#131, richardwooding/file-search-on#491).
+// tree-sitter-swift models an `else if` as a nested if_statement sitting as a
+// direct child of the outer if_statement (after an `else` token), so the swift
+// spec uses elseDirectIf rather than elseField/elseParentType. (A ternary in a
+// return position still mis-parses upstream, but that degrades the whole
+// function to no symbols, so it never reaches the cognitive walk.)
 
 // cognitiveSpec classifies one grammar's nodes for the cognitive walk.
 type cognitiveSpec struct {
@@ -43,6 +42,13 @@ type cognitiveSpec struct {
 	// elseParentType, when set, is the wrapper node holding the else branch; a
 	// direct ifType child of that wrapper is an `else if`.
 	elseParentType string
+	// elseDirectIf, when set, treats a direct ifType child of an ifType node as
+	// an `else if`. Swift models the else-if this way: the continuation
+	// if_statement is a direct child of the outer if_statement (after an `else`
+	// token), with no wrapper node and no field name. Safe because both then-
+	// and else-blocks are wrapped in a `statements` node, so the only ifType
+	// direct child an if_statement can have is the else-if continuation.
+	elseDirectIf bool
 }
 
 func nodeSet(names ...string) map[string]bool {
@@ -124,6 +130,11 @@ var cognitiveSpecs = map[string]cognitiveSpec{
 	"perl": {
 		nesting: nodeSet("conditional_statement", "loop_statement"),
 		flat:    nodeSet("elsif", "else"),
+	},
+	"swift": {
+		nesting:      nodeSet("if_statement", "guard_statement", "while_statement", "for_statement", "repeat_while_statement", "switch_statement", "catch_block", "ternary_expression"),
+		ifType:       "if_statement",
+		elseDirectIf: true,
 	},
 }
 
@@ -223,6 +234,13 @@ func tagElseIf(c *ts.Node, t string, spec cognitiveSpec, lang *ts.Language, set 
 				if gc := w.Child(j); gc != nil && gc.Type(lang) == t {
 					set[[2]uint32{gc.StartByte(), gc.EndByte()}] = true
 				}
+			}
+		}
+	}
+	if spec.elseDirectIf {
+		for i := 0; i < c.ChildCount(); i++ {
+			if gc := c.Child(i); gc != nil && gc.Type(lang) == t {
+				set[[2]uint32{gc.StartByte(), gc.EndByte()}] = true
 			}
 		}
 	}

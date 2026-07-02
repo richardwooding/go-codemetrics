@@ -9,7 +9,7 @@ import (
 )
 
 // cognitiveByFunc maps function name -> cognitive complexity for the given
-// source. Functions whose language has no cognitive spec (Swift) are omitted.
+// source. Functions whose language has no cognitive spec are omitted.
 func cognitiveByFunc(t *testing.T, language, src string) map[string]int {
 	t.Helper()
 	fns, err := treesitter.Parse(language, []byte(src))
@@ -316,8 +316,10 @@ func TestCyclomaticAndSpans(t *testing.T) {
 	}
 }
 
-func TestSwiftCognitiveUnavailable(t *testing.T) {
-	// Swift has no cognitive spec (#522): Cyclomatic is reported, Cognitive nil.
+func TestSwiftCognitiveAvailable(t *testing.T) {
+	// Swift gained a cognitive spec once gotreesitter v0.20.7 fixed the else-if
+	// mis-parse (#131 / file-search-on#491): a single if reports Cognitive 1,
+	// and Cyclomatic is still reported.
 	src := "func f(_ x: Int) -> Int {\n  if x > 0 { return 1 }\n  return 0\n}\n"
 	fns, err := treesitter.Parse("swift", []byte(src))
 	if err != nil {
@@ -327,12 +329,29 @@ func TestSwiftCognitiveUnavailable(t *testing.T) {
 		t.Fatal("no functions parsed for swift")
 	}
 	for _, f := range fns {
-		if f.Cognitive != nil {
-			t.Errorf("swift %s Cognitive = %d, want nil (unavailable)", f.Name, *f.Cognitive)
+		if f.Cognitive == nil {
+			t.Errorf("swift %s Cognitive = nil, want a value", f.Name)
+			continue
+		}
+		if *f.Cognitive != 1 {
+			t.Errorf("swift %s Cognitive = %d, want 1", f.Name, *f.Cognitive)
 		}
 		if f.Cyclomatic < 1 {
 			t.Errorf("swift %s Cyclomatic = %d, want >= 1", f.Name, f.Cyclomatic)
 		}
+	}
+}
+
+// TestSwiftCognitiveElseIf locks in the else-if regression: an else-if chain
+// must charge the flat continuation cost (not a nested-if penalty). For
+// `if {…} else if {…} else if {…}` the cognitive score is 1 + 1 + 1 = 3.
+func TestSwiftCognitiveElseIf(t *testing.T) {
+	src := "func f(_ x: Int) -> Int {\n" +
+		"  if x > 0 { return 1 } else if x < 0 { return 2 } else if x == 0 { return 3 }\n" +
+		"  return 4\n}\n"
+	got := cognitiveByFunc(t, "swift", src)
+	if got["f"] != 3 {
+		t.Errorf("swift else-if cognitive = %d, want 3 (%v)", got["f"], got)
 	}
 }
 

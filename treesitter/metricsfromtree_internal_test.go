@@ -9,7 +9,7 @@ func TestMetricsFromTreeMatchesParse(t *testing.T) {
 		{"python", "def branchy(x):\n    if x > 0:\n        for i in range(x):\n            if i % 2 == 0:\n                return i\n    return 0\n\ndef flat(a):\n    return a\n"},
 		{"javascript", "function f(n) {\n  if (n === 1) { return 1; }\n  else if (n === 2) { return 2; }\n  else { return 3; }\n}\n"},
 		{"rust", "fn branchy(x: i32) -> i32 {\n    if x > 0 {\n        for i in 0..x {\n            if i % 2 == 0 { return i; }\n        }\n    }\n    return 0;\n}\n"},
-		{"swift", "func f(_ x: Int) -> Int {\n  if x > 0 { return 1 }\n  return 0\n}\n"}, // no cognitive spec
+		{"swift", "func f(_ x: Int) -> Int {\n  if x > 0 { return 1 } else if x < 0 { return 2 }\n  return 0\n}\n"}, // else-if: cognitive spec via elseDirectIf
 	}
 	for _, tc := range cases {
 		t.Run(tc.language, func(t *testing.T) {

@@ -17,10 +17,10 @@
 //
 //	-tags 'grammar_subset grammar_subset_python grammar_subset_rust'
 //
-// Cognitive complexity follows the SonarSource specification. It is computed for
-// every supported language except Swift (whose grammar lacks a stable cognitive
-// spec); for Swift, FunctionMetrics.Cognitive is nil while Cyclomatic is still
-// reported.
+// Cognitive complexity follows the SonarSource specification and is computed for
+// every supported language (Swift included, since gotreesitter v0.20.7 fixed the
+// else-if mis-parse). A language with no cognitive spec reports Cognitive nil
+// while Cyclomatic is still reported.
 package treesitter
 
 import (

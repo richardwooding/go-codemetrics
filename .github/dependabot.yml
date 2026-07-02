@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # Go module dependencies.
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    labels:
+      - dependencies
+      - go
+    open-pull-requests-limit: 5
+    groups:
+      # Batch minor/patch bumps to cut PR noise; security updates still
+      # come as separate, prioritised PRs by default.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions used in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
